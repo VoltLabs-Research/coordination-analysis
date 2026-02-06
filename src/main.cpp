@@ -1,11 +1,11 @@
-#include <opendxa/cli/common.h>
-#include <opendxa/wrappers/coordination.h>
+#include <volt/cli/common.h>
+#include <volt/coordination_service.h>
 
-using namespace OpenDXA;
-using namespace OpenDXA::CLI;
+using namespace Volt;
+using namespace Volt::CLI;
 
 void showUsage(const std::string& name) {
-    printUsageHeader(name, "OpenDXA - Coordination Analysis");
+    printUsageHeader(name, "Volt - Coordination Analysis");
     std::cerr
         << "  --cutoff <float>              Cutoff radius for neighbor search. [default: 3.2]\n"
         << "  --rdfBins <int>               Number of bins for RDF calculation. [default: 500]\n"
@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
     }
     
     auto parallel = initParallelism(opts, false);
-    initLogging("opendxa-coordination", parallel.threads);
+    initLogging("volt-coordination", parallel.threads);
     
     LammpsParser::Frame frame;
     if (!parseFrame(filename, frame)) return 1;
@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
     outputBase = deriveOutputBase(filename, outputBase);
     spdlog::info("Output base: {}", outputBase);
     
-    CoordinationWrapper analyzer;
+    CoordinationService analyzer;
     analyzer.setCutoff(getDouble(opts, "--cutoff", 3.2));
     analyzer.setRdfBins(getInt(opts, "--rdfBins", 500));
     

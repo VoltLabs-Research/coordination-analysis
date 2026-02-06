@@ -1,9 +1,9 @@
-#include <opendxa/analysis/coordination_analysis.h>
+#include <volt/coordination_analysis_engine.h>
 
-namespace OpenDXA{
+namespace Volt{
 
 // Performs the actual computation. 
-void CoordinationNumber::CoordinationAnalysisEngine::perform(){
+void CoordinationAnalysisEngine::perform(){
     // Prepare the neighbor list
     CutoffNeighborFinder neighborListBuilder;
     if(!neighborListBuilder.prepare(_cutoff, positions(), cell())){
