@@ -28,7 +28,7 @@ json CoordinationService::compute(const LammpsParser::Frame &frame, const std::s
     if(!FrameAdapter::validateSimulationCell(frame.simulationCell))
         return AnalysisResult::failure("Invalid simulation cell");
 
-    auto positions = FrameAdapter::createPositionProperty(frame);
+    auto positions = FrameAdapter::createPositionPropertyShared(frame);
     if(!positions)
         return AnalysisResult::failure("Failed to create position property");
 
