@@ -1,6 +1,7 @@
 #include <volt/coordination_service.h>
 #include <volt/core/frame_adapter.h>
 #include <volt/core/analysis_result.h>
+#include <volt/utilities/json_utils.h>
 #include <spdlog/spdlog.h>
 
 namespace Volt{
@@ -63,8 +64,12 @@ json CoordinationService::compute(const LammpsParser::Frame &frame, const std::s
     result["coordination"] = coord;
 
     if(!outputFile.empty()){
-        // TODO: Implement msgpack export in standalone package
-        spdlog::warn("File output not yet implemented in standalone package");
+        const std::string outputPath = outputFile + "_coordination.msgpack";
+        if(JsonUtils::writeJsonMsgpackToFile(result, outputPath, false)){
+            spdlog::info("Coordination msgpack written to {}", outputPath);
+        }else{
+            spdlog::warn("Could not write coordination msgpack: {}", outputPath);
+        }
     }
 
     return result;
