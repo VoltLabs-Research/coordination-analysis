@@ -51,17 +51,24 @@ json CoordinationService::compute(const LammpsParser::Frame &frame, const std::s
     const auto &rdfY = coordNumber.rdY();
 
     auto coordProp = engine.coordinationNumbers();
-    std::vector<int> coord(frame.natoms);
-    for(int i = 0; i < frame.natoms; i++){
-        coord[i] = coordProp->getInt(i);
-    }
 
-    json result = AnalysisResult::success();
-    AnalysisResult::addTiming(result, startTime);
-    result["cutoff"] = _cutoff;
-    result["rdf"]["x"] = rdfX;
-    result["rdf"]["y"] = rdfY;
-    result["coordination"] = coord;
+    json result;
+    result["main_listing"] = {
+        { "cutoff", _cutoff },
+        { "rdf", {
+            { "x", rdfX },
+            { "y", rdfY }
+        }}
+    };
+
+    json perAtom = json::array();
+    for(int i = 0; i < frame.natoms; i++){
+        perAtom.push_back({
+            { "id", frame.ids[i] },
+            { "coordination", coordProp ? coordProp->getInt(i) : 0 }
+        });
+    }
+    result["per-atom-properties"] = perAtom;
 
     if(!outputFile.empty()){
         const std::string outputPath = outputFile + "_coordination.msgpack";
@@ -76,3 +83,4 @@ json CoordinationService::compute(const LammpsParser::Frame &frame, const std::s
 }
 
 }
+
