@@ -8,15 +8,13 @@ class CoordinationAnalysisConan(ConanFile):
     package_type = "static-library"
     license = "MIT"
     settings = "os", "arch", "compiler", "build_type"
-    default_options = {
-        "hwloc/*:shared": True,
-    }
     requires = (
         "boost/1.88.0",
         "coretoolkit/1.0.0",
         "spdlog/1.14.1",
         "nlohmann_json/3.11.3",
     )
+    default_options = {"hwloc/*:shared": True}
     exports_sources = "CMakeLists.txt", "include/*", "src/*"
 
     def layout(self):
