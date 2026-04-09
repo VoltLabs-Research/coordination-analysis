@@ -2,6 +2,12 @@
 
 `CoordinationAnalysis` computes coordination statistics and radial distribution data.
 
+## One-Command Install
+
+```bash
+curl -sSL https://raw.githubusercontent.com/VoltLabs-Research/CoreToolkit/main/scripts/install-plugin.sh | bash -s -- CoordinationAnalysis
+```
+
 ## CLI
 
 Usage:
@@ -20,13 +26,3 @@ coordination-analysis <lammps_file> [output_base] [options]
 | `--rdfBins <int>` | No | Number of bins for RDF calculation. | `500` |
 | `--threads <int>` | No | Maximum worker threads. | auto |
 | `--help` | No | Print CLI help. | |
-
-## Build With CoreToolkit
-
-```bash
-cd /path/to/voltlabs-ecosystem/tools/CoreToolkit
-conan create . -nr
-
-cd /path/to/voltlabs-ecosystem/plugins/CoordinationAnalysis
-conan create . -nr
-```
