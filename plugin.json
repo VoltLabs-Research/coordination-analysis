@@ -1,0 +1,257 @@
+{
+  "workflow": {
+    "nodes": [
+      {
+        "id": "plugin-metadata",
+        "type": "modifier",
+        "position": {
+          "x": 240,
+          "y": 160
+        },
+        "data": {
+          "modifier": {
+            "name": "Coordination Analysis",
+            "key": "coordination-analysis",
+            "icon": "HiCube",
+            "author": "Rodolfo Herrera",
+            "license": "MIT",
+            "version": "1.0.0",
+            "homepage": "https://github.com/rodyherrera/Volterra",
+            "description": "Calcula numero de coordinacion por atomo y funcion de distribucion radial (RDF)."
+          }
+        }
+      },
+      {
+        "id": "plugin-arguments",
+        "type": "arguments",
+        "position": {
+          "x": 528,
+          "y": 208
+        },
+        "data": {
+          "arguments": {
+            "arguments": [
+              {
+                "argument": "cutoff",
+                "type": "number",
+                "label": "Cutoff",
+                "default": 3.2,
+                "min": 0,
+                "step": 0.1
+              },
+              {
+                "argument": "rdfBins",
+                "type": "number",
+                "label": "RDF Bins",
+                "default": 500,
+                "min": 1,
+                "step": 1
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "trajectory-context",
+        "type": "context",
+        "position": {
+          "x": 816,
+          "y": 160
+        },
+        "data": {
+          "context": {
+            "source": "trajectory_dumps"
+          }
+        }
+      },
+      {
+        "id": "foreach-trajectory-dumps",
+        "type": "forEach",
+        "position": {
+          "x": 1088,
+          "y": 208
+        },
+        "data": {
+          "forEach": {
+            "iterableSource": "{{ trajectory-context.trajectory_dumps }}"
+          }
+        }
+      },
+      {
+        "id": "analysis-entrypoint",
+        "type": "entrypoint",
+        "position": {
+          "x": 1392,
+          "y": 208
+        },
+        "data": {
+          "entrypoint": {
+            "type": "python-script",
+            "binary": "coordination-analysis-plugin.zip",
+            "binaryObjectPath": "__UPLOAD_BINARY_OBJECT_PATH__",
+            "binaryFileName": "coordination-analysis-plugin.zip",
+            "entrypointScript": "scripts/coordination_plugin_wrapper.py",
+            "requirementsFile": "",
+            "arguments": "{{ foreach-trajectory-dumps.currentValue.path }} {{ foreach-trajectory-dumps.outputPath }} {{ plugin-arguments.as_str }}",
+            "timeout": -1
+          }
+        }
+      },
+      {
+        "id": "primary-exposure",
+        "type": "exposure",
+        "position": {
+          "x": 1712,
+          "y": 208
+        },
+        "data": {
+          "exposure": {
+            "name": "Coordination Analysis",
+            "icon": "HiCube",
+            "results": "coordination.msgpack",
+            "iterable": ""
+          }
+        }
+      },
+      {
+        "id": "coordination-model-exposure",
+        "type": "exposure",
+        "position": {
+          "x": 1712,
+          "y": 336
+        },
+        "data": {
+          "exposure": {
+            "name": "Coordination Model",
+            "icon": "HiCube",
+            "results": "atoms.msgpack",
+            "iterable": ""
+          }
+        }
+      },
+      {
+        "id": "coordination-model-export",
+        "type": "export",
+        "position": {
+          "x": 2032,
+          "y": 336
+        },
+        "data": {
+          "export": {
+            "exporter": "AtomisticExporter",
+            "type": "glb"
+          }
+        }
+      },
+      {
+        "id": "rdf-chart-exposure",
+        "type": "exposure",
+        "position": {
+          "x": 1712,
+          "y": 464
+        },
+        "data": {
+          "exposure": {
+            "name": "RDF Chart",
+            "icon": "HiChartBar",
+            "results": "rdf_chart.msgpack",
+            "iterable": "",
+            "hasListing": false
+          }
+        }
+      },
+      {
+        "id": "rdf-chart-export",
+        "type": "export",
+        "position": {
+          "x": 2032,
+          "y": 464
+        },
+        "data": {
+          "export": {
+            "exporter": "ChartExporter",
+            "type": "chart-png",
+            "options": {
+              "xAxisKey": "rdf.r",
+              "yAxisKey": "rdf.g_r",
+              "chartType": "line",
+              "title": "Radial distribution function",
+              "xAxisLabel": "r",
+              "yAxisLabel": "g(r)",
+              "backgroundColor": "#ffffff",
+              "lineColor": "#2563eb",
+              "fillColor": "rgba(37, 99, 235, 0.35)",
+              "showLegend": false,
+              "showGrid": true
+            }
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "edge-metadata-arguments",
+        "source": "plugin-metadata",
+        "sourceHandle": "output",
+        "target": "plugin-arguments",
+        "targetHandle": "input"
+      },
+      {
+        "id": "edge-arguments-context",
+        "source": "plugin-arguments",
+        "sourceHandle": "output",
+        "target": "trajectory-context",
+        "targetHandle": "input"
+      },
+      {
+        "id": "edge-context-foreach",
+        "source": "trajectory-context",
+        "sourceHandle": "output",
+        "target": "foreach-trajectory-dumps",
+        "targetHandle": "input"
+      },
+      {
+        "id": "edge-foreach-entrypoint",
+        "source": "foreach-trajectory-dumps",
+        "sourceHandle": "output",
+        "target": "analysis-entrypoint",
+        "targetHandle": "input"
+      },
+      {
+        "id": "edge-entrypoint-exposure",
+        "source": "analysis-entrypoint",
+        "sourceHandle": "output",
+        "target": "primary-exposure",
+        "targetHandle": "input"
+      },
+      {
+        "id": "edge-entrypoint-coordination-model-exposure",
+        "source": "analysis-entrypoint",
+        "sourceHandle": "output",
+        "target": "coordination-model-exposure",
+        "targetHandle": "input"
+      },
+      {
+        "id": "edge-coordination-model-exposure-coordination-model-export",
+        "source": "coordination-model-exposure",
+        "sourceHandle": "output",
+        "target": "coordination-model-export",
+        "targetHandle": "input"
+      },
+      {
+        "id": "edge-analysis-entrypoint-rdf-chart-exposure",
+        "source": "analysis-entrypoint",
+        "sourceHandle": "output",
+        "target": "rdf-chart-exposure",
+        "targetHandle": "input"
+      },
+      {
+        "id": "edge-rdf-chart-exposure-rdf-chart-export",
+        "source": "rdf-chart-exposure",
+        "sourceHandle": "output",
+        "target": "rdf-chart-export",
+        "targetHandle": "input"
+      }
+    ]
+  }
+}
