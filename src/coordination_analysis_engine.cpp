@@ -61,7 +61,7 @@ void CoordinationNumber::transferComputationResults(CoordinationAnalysisEngine* 
     _rdfX.resize(hist.size());
 
     double rho = static_cast<double>(eng->positions()->size()) / eng->cell().volume3D();
-    double constant = 4.0 / 3.0 * M_PI * rho * eng->positions()->size();
+    double constant = 4.0 / 3.0 * PI * rho * eng->positions()->size();
     double stepSize = eng->cutoff() / _rdfX.size();
 
     for(size_t i = 0; i < _rdfX.size(); i++){
