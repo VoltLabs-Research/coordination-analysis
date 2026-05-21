@@ -40,7 +40,7 @@
                 "step": 0.1
               },
               {
-                "argument": "rdfBins",
+                "argument": "rdf_bins",
                 "type": "number",
                 "label": "RDF Bins",
                 "default": 500,
