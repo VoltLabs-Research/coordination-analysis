@@ -9,7 +9,7 @@ void showUsage(const std::string& name) {
     printUsageHeader(name, "Volt - Coordination Analysis");
     std::cerr
         << "  --cutoff <float>              Cutoff radius for neighbor search. [default: 3.2]\n"
-        << "  --rdfBins <int>               Number of bins for RDF calculation. [default: 500]\n"
+        << "  --rdf_bins <int>               Number of bins for RDF calculation. [default: 500]\n"
         << "  --threads <int>               Max worker threads (TBB/OMP). [default: auto]\n";
     printHelpOption();
 }
@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
     
     CoordinationService analyzer;
     analyzer.setCutoff(getDouble(opts, "--cutoff", 3.2));
-    analyzer.setRdfBins(getInt(opts, "--rdfBins", 500));
+    analyzer.setRdfBins(getInt(opts, "--rdf_bins", 500));
     
     spdlog::info("Starting coordination analysis...");
     json result = analyzer.compute(frame, outputBase);
