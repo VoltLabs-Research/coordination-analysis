@@ -50,7 +50,6 @@ void CoordinationAnalysisEngine::perform(){
     for(auto &t : workers) t.join();
 }
 
-// Unpacks the result of the computation engine and stores them in the modifier
 void CoordinationNumber::transferComputationResults(CoordinationAnalysisEngine* engine){
     CoordinationAnalysisEngine* eng = static_cast<CoordinationAnalysisEngine*>(engine);
     _coordinationNumbers = eng->coordinationNumbers();
