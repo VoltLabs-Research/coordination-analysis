@@ -1,5 +1,8 @@
 #include <volt/coordination_analysis_engine.h>
 
+#include <tbb/parallel_reduce.h>
+#include <tbb/blocked_range.h>
+
 namespace Volt{
 
 // Performs the actual computation. 
@@ -10,44 +13,34 @@ void CoordinationAnalysisEngine::perform(){
         return;
     }
 
-    size_t particleCount = positions()->size();
+    const size_t particleCount = positions()->size();
+    const double rdfBinSize = (_cutoff + EPSILON) / _rdfHistogram.size();
+    int* coordOutput = _coordinationNumbers->dataInt();
 
-    // Perform analysis on each particle in parallel
-    std::vector<std::thread> workers;
-    int numThreads = std::max(1, (int)std::thread::hardware_concurrency());
-    size_t chunkSize = particleCount / numThreads;
-    size_t startIndex = 0;
-    size_t endIndex = chunkSize;
-    std::mutex mutex;
-
-    for(int t = 0; t < numThreads; t++){
-        if(t == numThreads - 1){
-            endIndex += particleCount % numThreads;
-        }
-        workers.push_back(std::thread([&neighborListBuilder, startIndex, endIndex, &mutex, this](){
-            int* coordOutput = _coordinationNumbers->dataInt();
-            double rdfBinSize = (_cutoff + EPSILON) / _rdfHistogram.size();
-            std::vector<size_t> threadLocalRDF(_rdfHistogram.size(), 0);
-            for(size_t i = startIndex; i < endIndex;){
+    // Per-particle coordination is written at distinct indices (no hazard); the
+    // RDF histogram is a reduction: each range accumulates a thread-local
+    // histogram and the join sums them element-wise. Replaces the previous
+    // manual std::thread chunking + mutex (which did not compose with the TBB
+    // thread pool governed by --threads).
+    _rdfHistogram = tbb::parallel_reduce(
+        tbb::blocked_range<size_t>(0, particleCount),
+        std::vector<double>(_rdfHistogram.size(), 0.0),
+        [&](const tbb::blocked_range<size_t>& r, std::vector<double> localRDF){
+            for(size_t i = r.begin(); i < r.end(); ++i){
                 int coordNumber = 0;
-                for(CutoffNeighborFinder::Query neighQuery(neighborListBuilder, i); !neighQuery.atEnd(); neighQuery.next()){
+                for(CutoffNeighborFinder::Query q(neighborListBuilder, i); !q.atEnd(); q.next()){
                     coordNumber++;
-                    size_t rdfInterval = (size_t)(sqrt(neighQuery.distanceSquared()) / rdfBinSize);
-                    threadLocalRDF[rdfInterval]++;
+                    size_t bin = (size_t)(std::sqrt(q.distanceSquared()) / rdfBinSize);
+                    if(bin < localRDF.size()) localRDF[bin]++;
                 }
                 coordOutput[i] = coordNumber;
-                i++;
             }
-            std::lock_guard<std::mutex> lock(mutex);
-            auto iter_out = _rdfHistogram.begin();
-            for(auto iter = threadLocalRDF.cbegin(); iter != threadLocalRDF.cend(); ++iter, ++iter_out){
-                *iter_out += *iter;
-            }
-        }));
-        startIndex = endIndex;
-        endIndex += chunkSize;
-    }
-    for(auto &t : workers) t.join();
+            return localRDF;
+        },
+        [](std::vector<double> a, const std::vector<double>& b){
+            for(size_t i = 0; i < a.size(); ++i) a[i] += b[i];
+            return a;
+        });
 }
 
 void CoordinationNumber::transferComputationResults(CoordinationAnalysisEngine* engine){
