@@ -15,7 +15,7 @@
             "icon": "HiCube",
             "author": "Rodolfo Herrera",
             "license": "MIT",
-            "version": "1.0.2",
+            "version": "1.0.3",
             "homepage": "https://github.com/rodyherrera/Volterra",
             "description": "Calcula numero de coordinacion por atomo y funcion de distribucion radial (RDF)."
           }
@@ -86,12 +86,10 @@
         },
         "data": {
           "entrypoint": {
-            "type": "python-script",
-            "binary": "coordination-analysis-plugin.zip",
+            "type": "executable",
+            "binary": "coordination-analysis",
             "binaryObjectPath": "__UPLOAD_BINARY_OBJECT_PATH__",
-            "binaryFileName": "coordination-analysis-plugin.zip",
-            "entrypointScript": "scripts/coordination_plugin_wrapper.py",
-            "requirementsFile": "",
+            "binaryFileName": "coordination-analysis",
             "arguments": "{{ foreach-trajectory-dumps.currentValue.path }} {{ foreach-trajectory-dumps.outputPath }} {{ plugin-arguments.as_str }}",
             "timeout": -1
           }
