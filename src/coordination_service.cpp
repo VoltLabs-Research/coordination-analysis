@@ -101,6 +101,10 @@ json CoordinationService::compute(const LammpsParser::Frame& frame, const std::s
                 w.write_double(color[0]); w.write_double(color[1]); w.write_double(color[2]);
                 w.write_key("color"); w.write_array_header(3);
                 w.write_double(color[0]); w.write_double(color[1]); w.write_double(color[2]);
+            },
+            .perAtomFieldWriter = [&coordinationValues](MsgpackWriter& w, std::size_t i, int& count) {
+                count = 1;
+                w.write_key("coordination"); w.write_int(coordinationValues[i]);
             }
         });
     }
