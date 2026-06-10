@@ -106,7 +106,7 @@
           "exposure": {
             "name": "Coordination Analysis",
             "icon": "HiCube",
-            "results": "coordination.msgpack",
+            "results": "coordination.parquet",
             "iterable": ""
           }
         }
@@ -122,7 +122,7 @@
           "exposure": {
             "name": "Coordination Model",
             "icon": "HiCube",
-            "results": "atoms.msgpack",
+            "results": "atoms.parquet",
             "iterable": ""
           }
         }
@@ -152,7 +152,7 @@
           "exposure": {
             "name": "RDF Chart",
             "icon": "HiChartBar",
-            "results": "rdf_chart.msgpack",
+            "results": "rdf_chart.parquet",
             "iterable": "",
             "hasListing": false
           }
