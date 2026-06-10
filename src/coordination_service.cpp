@@ -82,9 +82,9 @@ json CoordinationService::compute(const LammpsParser::Frame& frame, const std::s
         chartWrapper["export"]["ChartExporter"]["rdf"] = {
             {"r", rdfX}, {"g_r", rdfY}
         };
-        const std::string chartPath = outputBase + "_rdf_chart.msgpack";
-        if (JsonUtils::writeJsonMsgpackToFile(chartWrapper, chartPath, false))
-            spdlog::info("RDF chart msgpack written to {}", chartPath);
+        const std::string chartPath = outputBase + "_rdf_chart.parquet";
+        if (JsonUtils::writeJsonToParquet(chartWrapper, chartPath))
+            spdlog::info("RDF chart parquet written to {}", chartPath);
 
         int minC = minCoordination, maxC = maxCoordination;
         Plugin::serializePluginOutput(outputBase, frame, result, {
@@ -92,19 +92,12 @@ json CoordinationService::compute(const LammpsParser::Frame& frame, const std::s
             .bucketResolver = [&coordinationValues](std::size_t i) {
                 return "Coordination_" + std::to_string(coordinationValues[i]);
             },
-            .atomFieldWriter = [&coordinationValues, minC, maxC](MsgpackWriter& w, std::size_t i, int& count) {
-                count = 3;
+            .perAtomColumnWriter = [&coordinationValues, minC, maxC](ColumnarAtomWriter& w, std::size_t i) {
                 const int coord = coordinationValues[i];
                 const auto color = coordinationColor(coord, minC, maxC);
-                w.write_key("coordination"); w.write_int(coord);
-                w.write_key("coordination_color"); w.write_array_header(3);
-                w.write_double(color[0]); w.write_double(color[1]); w.write_double(color[2]);
-                w.write_key("color"); w.write_array_header(3);
-                w.write_double(color[0]); w.write_double(color[1]); w.write_double(color[2]);
-            },
-            .perAtomFieldWriter = [&coordinationValues](MsgpackWriter& w, std::size_t i, int& count) {
-                count = 1;
-                w.write_key("coordination"); w.write_int(coordinationValues[i]);
+                w.field("coordination", coord);
+                w.field("coordination_color", std::vector<double>{color[0], color[1], color[2]});
+                w.field("color", std::vector<double>{color[0], color[1], color[2]});
             }
         });
     }
