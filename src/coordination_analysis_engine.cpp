@@ -2,12 +2,12 @@
 
 #include <tbb/parallel_reduce.h>
 #include <tbb/blocked_range.h>
+#include <map>
+#include <mutex>
 
 namespace Volt{
 
-// Performs the actual computation. 
 void CoordinationAnalysisEngine::perform(){
-    // Prepare the neighbor list
     CutoffNeighborFinder neighborListBuilder;
     if(!neighborListBuilder.prepare(_cutoff, positions(), cell())){
         return;
@@ -17,11 +17,6 @@ void CoordinationAnalysisEngine::perform(){
     const double rdfBinSize = (_cutoff + EPSILON) / _rdfHistogram.size();
     int* coordOutput = _coordinationNumbers->dataInt();
 
-    // Per-particle coordination is written at distinct indices (no hazard); the
-    // RDF histogram is a reduction: each range accumulates a thread-local
-    // histogram and the join sums them element-wise. Replaces the previous
-    // manual std::thread chunking + mutex (which did not compose with the TBB
-    // thread pool governed by --threads).
     _rdfHistogram = tbb::parallel_reduce(
         tbb::blocked_range<size_t>(0, particleCount),
         std::vector<double>(_rdfHistogram.size(), 0.0),
@@ -41,6 +36,49 @@ void CoordinationAnalysisEngine::perform(){
             for(size_t i = 0; i < a.size(); ++i) a[i] += b[i];
             return a;
         });
+
+    // Partial RDF per type-pair (serial, lightweight — bins are small maps)
+    if(_types && _types->size() == particleCount){
+        // Build unique type set
+        std::map<int, bool> typeSet;
+        for(int t : *_types) typeSet[t] = true;
+
+        // Map from pair-key (ti*100000 + tj with ti<=tj) to histogram
+        const int bins = static_cast<int>(_rdfHistogram.size());
+        std::map<long long, std::vector<long long>> pairHist;
+        for(auto& [ti, _a] : typeSet){
+            for(auto& [tj, _b] : typeSet){
+                if(ti <= tj){
+                    long long key = (long long)ti * 100000LL + tj;
+                    pairHist[key].assign(bins, 0LL);
+                }
+            }
+        }
+
+        for(size_t i = 0; i < particleCount; ++i){
+            int ti = (*_types)[i];
+            for(CutoffNeighborFinder::Query q(neighborListBuilder, i); !q.atEnd(); q.next()){
+                int tj = (*_types)[q.current()];
+                int ta = std::min(ti, tj);
+                int tb = std::max(ti, tj);
+                long long key = (long long)ta * 100000LL + tb;
+                int bin = (int)(std::sqrt(q.distanceSquared()) / rdfBinSize);
+                if(bin < bins) pairHist[key][bin]++;
+            }
+        }
+
+        // Convert to PartialRdfEntry rows
+        _partialRdf.clear();
+        double stepSize = _cutoff / bins;
+        for(auto& [key, hist] : pairHist){
+            int ta = (int)(key / 100000LL);
+            int tb = (int)(key % 100000LL);
+            std::string pairName = std::to_string(ta) + "-" + std::to_string(tb);
+            for(int b = 0; b < bins; ++b){
+                _partialRdf.push_back({pairName, (b + 0.5) * stepSize, hist[b]});
+            }
+        }
+    }
 }
 
 void CoordinationNumber::transferComputationResults(CoordinationAnalysisEngine* engine){

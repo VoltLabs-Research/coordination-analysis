@@ -38,7 +38,8 @@ json CoordinationService::compute(const LammpsParser::Frame& frame, const std::s
     CoordinationNumber coordNumber;
     coordNumber.setCutoff(_cutoff);
 
-    CoordinationAnalysisEngine engine(positions.get(), frame.simulationCell, _cutoff, _rdfBins);
+    const std::vector<int>* typesPtr = frame.types.empty() ? nullptr : &frame.types;
+    CoordinationAnalysisEngine engine(positions.get(), frame.simulationCell, _cutoff, _rdfBins, typesPtr);
     engine.perform();
     coordNumber.transferComputationResults(&engine);
 
@@ -85,6 +86,19 @@ json CoordinationService::compute(const LammpsParser::Frame& frame, const std::s
         const std::string chartPath = outputBase + "_rdf_chart.parquet";
         if (JsonUtils::writeJsonToParquet(chartWrapper, chartPath))
             spdlog::info("RDF chart parquet written to {}", chartPath);
+
+        // Partial RDF histogram (per type-pair)
+        const auto& partialRdf = engine.partialRdf();
+        if(!partialRdf.empty()){
+            json histWrapper;
+            auto& rows = histWrapper["export"]["data"] = json::array();
+            for(const auto& e : partialRdf){
+                rows.push_back({{"pair_type", e.pairType}, {"bin_center", e.binCenter}, {"bin_count", e.binCount}});
+            }
+            const std::string histPath = outputBase + "_rdf_histogram.parquet";
+            if(JsonUtils::writeJsonToParquet(histWrapper, histPath))
+                spdlog::info("Partial RDF histogram parquet written to {}", histPath);
+        }
 
         int minC = minCoordination, maxC = maxCoordination;
         Plugin::serializePluginOutput(outputBase, frame, result, {
