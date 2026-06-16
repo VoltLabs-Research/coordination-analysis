@@ -15,7 +15,7 @@
             "icon": "HiCube",
             "author": "Rodolfo Herrera",
             "license": "MIT",
-            "version": "2.0.1",
+            "version": "2.0.2",
             "homepage": "https://github.com/voltlabs-research/coordination-analysis",
             "description": "Calcula numero de coordinacion por atomo y funcion de distribucion radial (RDF)."
           }

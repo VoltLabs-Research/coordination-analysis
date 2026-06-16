@@ -1,6 +1,6 @@
 {
   "name": "@voltlabs/coordination-analysis",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "kind": "workflow",
   "publisher": "voltlabs",
   "description": "Analyzes local atomic coordination by computing coordination numbers, the radial distribution function (RDF), and per-type-pair partial RDF histograms.",
