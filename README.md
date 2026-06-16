@@ -1,68 +1,37 @@
-# CoordinationAnalysis
+# Coordination Analysis
 
-`CoordinationAnalysis` computes coordination statistics and radial distribution data.
+Computes per-atom coordination number and the radial distribution function (RDF).
 
-## One-Command Install
-
-```bash
-curl -sSL https://raw.githubusercontent.com/VoltLabs-Research/CoreToolkit/main/scripts/install-plugin.sh | bash -s -- CoordinationAnalysis
-```
-
-## Build from source
-
-Requires [Conan 2.x](https://docs.conan.io/2/installation.html), CMake 3.20+, and a C++23 compiler (GCC 14+ or Clang 17+).
-
-### Prerequisites
-
-The following Conan packages must be available in your local cache:
-
-- `coretoolkit/1.0.0` (from the `CoreToolkit` repository)
-
-For each dependency, clone its repository and create the package:
+## Install
 
 ```bash
-conan create <path-to-dependency-repo> --build=missing -o "hwloc/*:shared=True"
-```
-
-### Build
-
-From the root of this repository:
-
-```bash
-conan install . -of build --build=missing -o "hwloc/*:shared=True"
-cmake --preset conan-release
-cmake --build build/build/Release -j
-```
-
-### Run
-
-```bash
-./build/build/Release/coordination-analysis --help
-```
-
-### Package as Conan recipe
-
-To make this plugin available as a Conan package for other projects:
-
-```bash
-conan create . --build=missing -o "hwloc/*:shared=True"
+vpm install @voltlabs/coordination-analysis
 ```
 
 ## CLI
 
-Usage:
-
 ```bash
-coordination-analysis <lammps_file> [output_base] [options]
+coordination-analysis <input_dump> [output_base] [options]
 ```
 
-### Arguments
+| Argument | Required | Default | Description |
+|---|---|---|---|
+| `<input_dump>` | yes | — | Input LAMMPS dump. |
+| `[output_base]` | no | derived from input | Base path for output files. |
+| `--cutoff <float>` | no | `3.2` | Cutoff radius for neighbor search. |
+| `--rdf_bins <int>` | no | `500` | Number of bins for the RDF calculation. |
+| `--threads <int>` | no | auto | Maximum worker threads. |
+| `--help` | no | — | Print CLI help. |
 
-| Argument | Required | Description | Default |
-| --- | --- | --- | --- |
-| `<lammps_file>` | Yes | Input LAMMPS dump file. | |
-| `[output_base]` | No | Base path for output files. | derived from input |
-| `--cutoff <float>` | No | Cutoff radius for neighbor search. | `3.2` |
-| `--rdf_bins <int>` | No | Number of bins for RDF calculation. | `500` |
-| `--threads <int>` | No | Maximum worker threads. | auto |
-| `--help` | No | Print CLI help. | |
+## Exports
+
+| Output file | Exposure | Exporter → artifact |
+|---|---|---|
+| `{output_base}_coordination.parquet` | Coordination Analysis | — |
+| `{output_base}_atoms.parquet` | Coordination Model | AtomisticExporter → glb |
+| `{output_base}_rdf_chart.parquet` | RDF Chart | ChartExporter → chart-png |
+| `{output_base}_rdf_histogram.parquet` | Partial RDF Histogram | — |
+
+---
+
+Full input contract and examples: https://docs.voltcloud.dev/docs/plugins/coordination-analysis
