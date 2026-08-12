@@ -15,9 +15,39 @@
             "icon": "HiCube",
             "author": "Rodolfo Herrera",
             "license": "MIT",
-            "version": "2.0.2",
+            "version": "2.0.3",
             "homepage": "https://github.com/voltlabs-research/coordination-analysis",
             "description": "Calcula numero de coordinacion por atomo y funcion de distribucion radial (RDF)."
+          }
+        }
+      },
+      {
+        "id": "plugin-arguments",
+        "type": "arguments",
+        "position": {
+          "x": 528,
+          "y": 208
+        },
+        "data": {
+          "arguments": {
+            "arguments": [
+              {
+                "argument": "cutoff",
+                "type": "number",
+                "label": "Cutoff",
+                "default": 3.2,
+                "min": 0,
+                "step": 0.1
+              },
+              {
+                "argument": "rdf_bins",
+                "type": "number",
+                "label": "RDF Bins",
+                "default": 500,
+                "min": 1,
+                "step": 1
+              }
+            ]
           }
         }
       },
@@ -60,7 +90,7 @@
             "binary": "coordination-analysis",
             "binaryObjectPath": "__UPLOAD_BINARY_OBJECT_PATH__",
             "binaryFileName": "coordination-analysis",
-            "arguments": "{{ foreach-trajectory-dumps.currentValue.path }} {{ foreach-trajectory-dumps.outputPath }}",
+            "arguments": "{{ foreach-trajectory-dumps.currentValue.path }} {{ foreach-trajectory-dumps.outputPath }} {{ plugin-arguments.as_str }}",
             "timeout": -1
           }
         }
@@ -184,7 +214,7 @@
               },
               {
                 "key": "bin_center",
-                "label": "Bin Center (\u00c5)",
+                "label": "Bin Center (Å)",
                 "type": "double"
               },
               {
@@ -198,6 +228,20 @@
       }
     ],
     "edges": [
+      {
+        "id": "edge-metadata-arguments",
+        "source": "plugin-metadata",
+        "sourceHandle": "output",
+        "target": "plugin-arguments",
+        "targetHandle": "input"
+      },
+      {
+        "id": "edge-arguments-context",
+        "source": "plugin-arguments",
+        "sourceHandle": "output",
+        "target": "trajectory-context",
+        "targetHandle": "input"
+      },
       {
         "id": "edge-context-foreach",
         "source": "trajectory-context",
@@ -252,13 +296,6 @@
         "source": "analysis-entrypoint",
         "sourceHandle": "output",
         "target": "rdf-histogram-exposure",
-        "targetHandle": "input"
-      },
-      {
-        "id": "edge-plugin-metadata-trajectory-context",
-        "source": "plugin-metadata",
-        "sourceHandle": "output",
-        "target": "trajectory-context",
         "targetHandle": "input"
       }
     ]
