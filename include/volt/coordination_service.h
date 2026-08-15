@@ -21,4 +21,4 @@ private:
     int _rdfBins = 500;
 };
 
-} // namespace Volt
+}

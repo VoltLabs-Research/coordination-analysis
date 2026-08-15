@@ -26,9 +26,8 @@ private:
     std::vector<double> _rdfY;
 };
 
-// Per-type-pair RDF histogram entry
 struct PartialRdfEntry {
-    std::string pairType;   // e.g. "1-1", "1-2", "2-2"
+    std::string pairType;
     double binCenter;
     long long binCount;
 };

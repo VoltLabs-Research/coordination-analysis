@@ -87,7 +87,6 @@ json CoordinationService::compute(const LammpsParser::Frame& frame, const std::s
         if (JsonUtils::writeJsonToParquet(chartWrapper, chartPath))
             spdlog::info("RDF chart parquet written to {}", chartPath);
 
-        // Partial RDF histogram (per type-pair)
         const auto& partialRdf = engine.partialRdf();
         if(!partialRdf.empty()){
             json histWrapper;
@@ -119,4 +118,4 @@ json CoordinationService::compute(const LammpsParser::Frame& frame, const std::s
     return result;
 }
 
-} // namespace Volt
+}
