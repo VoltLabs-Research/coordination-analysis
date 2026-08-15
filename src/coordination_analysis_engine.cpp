@@ -37,13 +37,10 @@ void CoordinationAnalysisEngine::perform(){
             return a;
         });
 
-    // Partial RDF per type-pair (serial, lightweight — bins are small maps)
     if(_types && _types->size() == particleCount){
-        // Build unique type set
         std::map<int, bool> typeSet;
         for(int t : *_types) typeSet[t] = true;
 
-        // Map from pair-key (ti*100000 + tj with ti<=tj) to histogram
         const int bins = static_cast<int>(_rdfHistogram.size());
         std::map<long long, std::vector<long long>> pairHist;
         for(auto& [ti, _a] : typeSet){
@@ -67,7 +64,6 @@ void CoordinationAnalysisEngine::perform(){
             }
         }
 
-        // Convert to PartialRdfEntry rows
         _partialRdf.clear();
         double stepSize = _cutoff / bins;
         for(auto& [key, hist] : pairHist){
