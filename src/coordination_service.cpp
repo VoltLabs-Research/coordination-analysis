@@ -109,7 +109,6 @@ json CoordinationService::compute(const LammpsParser::Frame& frame, const std::s
                 const int coord = coordinationValues[i];
                 const auto color = coordinationColor(coord, minC, maxC);
                 w.field("coordination", coord);
-                w.field("coordination_color", std::vector<double>{color[0], color[1], color[2]});
                 w.field("color", std::vector<double>{color[0], color[1], color[2]});
             }
         });
