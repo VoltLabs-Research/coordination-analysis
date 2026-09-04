@@ -84,8 +84,8 @@ json CoordinationService::compute(const LammpsParser::Frame& frame, const std::s
             {"r", rdfX}, {"g_r", rdfY}
         };
         const std::string chartPath = outputBase + "_rdf_chart.parquet";
-        if (JsonUtils::writeJsonToParquet(chartWrapper, chartPath))
-            spdlog::info("RDF chart parquet written to {}", chartPath);
+        JsonUtils::writeJsonToParquet(chartWrapper, chartPath);
+        spdlog::info("RDF chart parquet written to {}", chartPath);
 
         const auto& partialRdf = engine.partialRdf();
         if(!partialRdf.empty()){
@@ -95,8 +95,8 @@ json CoordinationService::compute(const LammpsParser::Frame& frame, const std::s
                 rows.push_back({{"pair_type", e.pairType}, {"bin_center", e.binCenter}, {"bin_count", e.binCount}});
             }
             const std::string histPath = outputBase + "_rdf_histogram.parquet";
-            if(JsonUtils::writeJsonToParquet(histWrapper, histPath))
-                spdlog::info("Partial RDF histogram parquet written to {}", histPath);
+            JsonUtils::writeJsonToParquet(histWrapper, histPath);
+            spdlog::info("Partial RDF histogram parquet written to {}", histPath);
         }
 
         int minC = minCoordination, maxC = maxCoordination;
