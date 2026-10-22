@@ -3,6 +3,7 @@
 #include <volt/core/analysis_result.h>
 #include <volt/plugin/output_serializer.h>
 #include <volt/utilities/json_utils.h>
+#include <volt/core/progress.h>
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
@@ -60,6 +61,21 @@ json CoordinationService::compute(const LammpsParser::Frame& frame, const std::s
         coordinationSum += coord;
     }
     if (frame.natoms == 0) { minCoordination = 0; maxCoordination = 0; }
+
+    std::vector<std::size_t> coordinationHistogram(static_cast<std::size_t>(maxCoordination - minCoordination) + 1, 0);
+    for (const int coord : coordinationValues)
+        ++coordinationHistogram[static_cast<std::size_t>(coord - minCoordination)];
+    const auto mostCommon = std::max_element(coordinationHistogram.begin(), coordinationHistogram.end());
+    spdlog::info("Coordination numbers: min {}, mean {:.2f}, max {}, most common {} ({:.1f}% of atoms)",
+        minCoordination, static_cast<double>(coordinationSum) / static_cast<double>(frame.natoms), maxCoordination,
+        minCoordination + static_cast<int>(mostCommon - coordinationHistogram.begin()),
+        percentOf(*mostCommon, static_cast<std::uint64_t>(frame.natoms)));
+
+    if (!rdfY.empty() && rdfX.size() == rdfY.size()) {
+        const auto peak = std::max_element(rdfY.begin(), rdfY.end());
+        spdlog::info("RDF: {} bins up to r = {:.5g}, peak g(r) = {:.3f} at r = {:.3f}",
+            rdfY.size(), _cutoff, *peak, rdfX[static_cast<std::size_t>(peak - rdfY.begin())]);
+    }
 
     json rdfRows = json::array();
     for (std::size_t i = 0; i < rdfX.size() && i < rdfY.size(); ++i) {
