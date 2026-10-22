@@ -1,4 +1,6 @@
 #include <volt/coordination_analysis_engine.h>
+#include <volt/core/progress.h>
+#include <spdlog/spdlog.h>
 
 #include <tbb/parallel_reduce.h>
 #include <tbb/blocked_range.h>
@@ -8,15 +10,21 @@
 namespace Volt{
 
 void CoordinationAnalysisEngine::perform(){
+    spdlog::info("Building neighbor lists (cutoff {:.5g}) for {} atoms...", _cutoff, positions()->size());
+    Stopwatch timer;
     CutoffNeighborFinder neighborListBuilder;
     if(!neighborListBuilder.prepare(_cutoff, positions(), cell())){
+        spdlog::error("Failed to build neighbor lists; coordination numbers and RDF are left at zero");
         return;
     }
+    spdlog::info("Neighbor lists ready in {}", timer.elapsed());
 
     const size_t particleCount = positions()->size();
     const double rdfBinSize = (_cutoff + EPSILON) / _rdfHistogram.size();
     int* coordOutput = _coordinationNumbers->dataInt();
 
+    spdlog::info("Computing coordination numbers and RDF for {} atoms...", particleCount);
+    ProgressReporter progress("Computing coordination numbers", particleCount);
     _rdfHistogram = tbb::parallel_reduce(
         tbb::blocked_range<size_t>(0, particleCount),
         std::vector<double>(_rdfHistogram.size(), 0.0),
@@ -30,14 +38,17 @@ void CoordinationAnalysisEngine::perform(){
                 }
                 coordOutput[i] = coordNumber;
             }
+            progress.advance(r.size());
             return localRDF;
         },
         [](std::vector<double> a, const std::vector<double>& b){
             for(size_t i = 0; i < a.size(); ++i) a[i] += b[i];
             return a;
         });
+    spdlog::info("Computed coordination numbers and RDF for {} atoms in {}", particleCount, progress.elapsed());
 
     if(_types && _types->size() == particleCount){
+        timer.restart();
         std::map<int, bool> typeSet;
         for(int t : *_types) typeSet[t] = true;
 
@@ -52,6 +63,8 @@ void CoordinationAnalysisEngine::perform(){
             }
         }
 
+        spdlog::info("Computing partial RDFs for {} atom types ({} pairs)...", typeSet.size(), pairHist.size());
+        ProgressReporter pairProgress("Computing partial RDFs", particleCount);
         for(size_t i = 0; i < particleCount; ++i){
             int ti = (*_types)[i];
             for(CutoffNeighborFinder::Query q(neighborListBuilder, i); !q.atEnd(); q.next()){
@@ -62,6 +75,7 @@ void CoordinationAnalysisEngine::perform(){
                 int bin = (int)(std::sqrt(q.distanceSquared()) / rdfBinSize);
                 if(bin < bins) pairHist[key][bin]++;
             }
+            pairProgress.update(i + 1);
         }
 
         _partialRdf.clear();
@@ -74,6 +88,7 @@ void CoordinationAnalysisEngine::perform(){
                 _partialRdf.push_back({pairName, (b + 0.5) * stepSize, hist[b]});
             }
         }
+        spdlog::info("Computed partial RDFs in {}", timer.elapsed());
     }
 }
 
