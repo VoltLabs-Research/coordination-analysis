@@ -10,6 +10,10 @@
 namespace Volt{
 
 void CoordinationAnalysisEngine::perform(){
+    // Neighbor lists, coordination numbers with the RDF, then the serial partial RDFs, which run
+    // only when the atoms have types.
+    const bool partialRdfs = _types && _types->size() == positions()->size();
+    ProgressSteps steps({1.0, 1.0, partialRdfs ? 5.0 : 0.0});
     spdlog::info("Building neighbor lists (cutoff {:.5g}) for {} atoms...", _cutoff, positions()->size());
     Stopwatch timer;
     CutoffNeighborFinder neighborListBuilder;
@@ -18,6 +22,7 @@ void CoordinationAnalysisEngine::perform(){
         return;
     }
     spdlog::info("Neighbor lists ready in {}", timer.elapsed());
+    steps.next();
 
     const size_t particleCount = positions()->size();
     const double rdfBinSize = (_cutoff + EPSILON) / _rdfHistogram.size();
@@ -46,8 +51,9 @@ void CoordinationAnalysisEngine::perform(){
             return a;
         });
     spdlog::info("Computed coordination numbers and RDF for {} atoms in {}", particleCount, progress.elapsed());
+    steps.next();
 
-    if(_types && _types->size() == particleCount){
+    if(partialRdfs){
         timer.restart();
         std::map<int, bool> typeSet;
         for(int t : *_types) typeSet[t] = true;

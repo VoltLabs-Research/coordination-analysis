@@ -41,7 +41,10 @@ json CoordinationService::compute(const LammpsParser::Frame& frame, const std::s
 
     const std::vector<int>* typesPtr = frame.types.empty() ? nullptr : &frame.types;
     CoordinationAnalysisEngine engine(positions.get(), frame.simulationCell, _cutoff, _rdfBins, typesPtr);
+    // The coordination engine, then the outputs.
+    ProgressSteps steps({3.0, 2.0});
     engine.perform();
+    steps.next();
     coordNumber.transferComputationResults(&engine);
 
     const auto& rdfX = coordNumber.rdfX();
