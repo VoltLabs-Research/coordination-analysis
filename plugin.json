@@ -12,6 +12,7 @@
           "modifier": {
             "name": "Coordination Analysis",
             "key": "coordination-analysis",
+            "category": "Local order",
             "icon": "HiCube",
             "author": "Rodolfo Herrera",
             "license": "MIT",
