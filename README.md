@@ -5,6 +5,7 @@ Computes per-atom coordination number and the radial distribution function (RDF)
 ## Install
 
 ```bash
+npm install -g @voltstack/vpm
 vpm install @voltlabs/coordination-analysis
 ```
 
