@@ -7,6 +7,8 @@
 
 namespace Volt{
 
+class CoordinationAnalysisLog;
+
 class CoordinationNumber{
 public:
     CoordinationNumber(){}
@@ -16,6 +18,7 @@ public:
 
     const std::vector<double>& rdfX() const{ return _rdfX; }
     const std::vector<double>& rdY() const{ return _rdfY; }
+    const std::shared_ptr<ParticleProperty>& coordinationNumbers() const{ return _coordinationNumbers; }
 
     void transferComputationResults(class CoordinationAnalysisEngine* engine);
 
@@ -48,7 +51,7 @@ public:
           _coordinationNumbers(new ParticleProperty(positions->size(), ParticleProperty::CoordinationProperty, 0, true)),
           _types(types){}
 
-    void perform();
+    void perform(CoordinationAnalysisLog& log);
 
     ParticleProperty* positions() const{ return _positions; }
     const SimulationCell& cell() const{ return _simCell; }

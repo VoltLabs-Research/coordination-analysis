@@ -1,10 +1,10 @@
 #include <volt/coordination_service.h>
+#include <volt/coordination_analysis_log.h>
 #include <volt/core/frame_adapter.h>
 #include <volt/core/analysis_result.h>
 #include <volt/plugin/output_serializer.h>
 #include <volt/utilities/json_utils.h>
 #include <volt/core/progress.h>
-#include <spdlog/spdlog.h>
 
 #include <algorithm>
 #include <array>
@@ -16,7 +16,7 @@ namespace Volt {
 void CoordinationService::setCutoff(double v) { _cutoff = v; }
 void CoordinationService::setRdfBins(int v) { _rdfBins = v; }
 
-static std::array<double, 3> coordinationColor(int coordination, int minCoord, int maxCoord) {
+std::array<double, 3> CoordinationService::coordinationColor(int coordination, int minCoord, int maxCoord) {
     const double t = maxCoord > minCoord
         ? static_cast<double>(coordination - minCoord) / static_cast<double>(maxCoord - minCoord)
         : 0.5;
@@ -41,11 +41,15 @@ json CoordinationService::compute(const LammpsParser::Frame& frame, const std::s
 
     const std::vector<int>* typesPtr = frame.types.empty() ? nullptr : &frame.types;
     CoordinationAnalysisEngine engine(positions.get(), frame.simulationCell, _cutoff, _rdfBins, typesPtr);
-    // The coordination engine, then the outputs.
-    ProgressSteps steps({3.0, 2.0});
-    engine.perform();
+    CoordinationAnalysisLog log;
+    ProgressSteps steps({
+        {"Computing coordination numbers", 3.0},
+        {"Writing outputs", 2.0},
+    });
+    engine.perform(log);
     steps.next();
     coordNumber.transferComputationResults(&engine);
+    log.dump(coordNumber);
 
     const auto& rdfX = coordNumber.rdfX();
     const auto& rdfY = coordNumber.rdY();
@@ -64,21 +68,6 @@ json CoordinationService::compute(const LammpsParser::Frame& frame, const std::s
         coordinationSum += coord;
     }
     if (frame.natoms == 0) { minCoordination = 0; maxCoordination = 0; }
-
-    std::vector<std::size_t> coordinationHistogram(static_cast<std::size_t>(maxCoordination - minCoordination) + 1, 0);
-    for (const int coord : coordinationValues)
-        ++coordinationHistogram[static_cast<std::size_t>(coord - minCoordination)];
-    const auto mostCommon = std::max_element(coordinationHistogram.begin(), coordinationHistogram.end());
-    spdlog::info("Coordination numbers: min {}, mean {:.2f}, max {}, most common {} ({:.1f}% of atoms)",
-        minCoordination, static_cast<double>(coordinationSum) / static_cast<double>(frame.natoms), maxCoordination,
-        minCoordination + static_cast<int>(mostCommon - coordinationHistogram.begin()),
-        percentOf(*mostCommon, static_cast<std::uint64_t>(frame.natoms)));
-
-    if (!rdfY.empty() && rdfX.size() == rdfY.size()) {
-        const auto peak = std::max_element(rdfY.begin(), rdfY.end());
-        spdlog::info("RDF: {} bins up to r = {:.5g}, peak g(r) = {:.3f} at r = {:.3f}",
-            rdfY.size(), _cutoff, *peak, rdfX[static_cast<std::size_t>(peak - rdfY.begin())]);
-    }
 
     json rdfRows = json::array();
     for (std::size_t i = 0; i < rdfX.size() && i < rdfY.size(); ++i) {
@@ -102,9 +91,7 @@ json CoordinationService::compute(const LammpsParser::Frame& frame, const std::s
         chartWrapper["export"]["ChartExporter"]["rdf"] = {
             {"r", rdfX}, {"g_r", rdfY}
         };
-        const std::string chartPath = outputBase + "_rdf_chart.parquet";
-        JsonUtils::writeJsonToParquet(chartWrapper, chartPath);
-        spdlog::info("RDF chart parquet written to {}", chartPath);
+        log.dump(JsonUtils::writeSummaryTable(chartWrapper, outputBase, "rdf_chart", "RDF chart"));
 
         const auto& partialRdf = engine.partialRdf();
         if(!partialRdf.empty()){
@@ -113,9 +100,7 @@ json CoordinationService::compute(const LammpsParser::Frame& frame, const std::s
             for(const auto& e : partialRdf){
                 rows.push_back({{"pair_type", e.pairType}, {"bin_center", e.binCenter}, {"bin_count", e.binCount}});
             }
-            const std::string histPath = outputBase + "_rdf_histogram.parquet";
-            JsonUtils::writeJsonToParquet(histWrapper, histPath);
-            spdlog::info("Partial RDF histogram parquet written to {}", histPath);
+            log.dump(JsonUtils::writeSummaryTable(histWrapper, outputBase, "rdf_histogram", "Partial RDF histogram"));
         }
 
         int minC = minCoordination, maxC = maxCoordination;

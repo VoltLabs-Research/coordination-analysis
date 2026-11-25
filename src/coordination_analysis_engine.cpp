@@ -1,6 +1,6 @@
 #include <volt/coordination_analysis_engine.h>
+#include <volt/coordination_analysis_log.h>
 #include <volt/core/progress.h>
-#include <spdlog/spdlog.h>
 
 #include <tbb/parallel_reduce.h>
 #include <tbb/blocked_range.h>
@@ -9,26 +9,22 @@
 
 namespace Volt{
 
-void CoordinationAnalysisEngine::perform(){
-    // Neighbor lists, coordination numbers with the RDF, then the serial partial RDFs, which run
-    // only when the atoms have types.
+void CoordinationAnalysisEngine::perform(CoordinationAnalysisLog& log){
     const bool partialRdfs = _types && _types->size() == positions()->size();
-    ProgressSteps steps({1.0, 1.0, partialRdfs ? 5.0 : 0.0});
-    spdlog::info("Building neighbor lists (cutoff {:.5g}) for {} atoms...", _cutoff, positions()->size());
-    Stopwatch timer;
+    ProgressSteps steps({
+        {"Building neighbor lists", 1.0},
+        {"Computing coordination numbers", 1.0},
+        {"Computing partial RDFs", 5.0, partialRdfs},
+    });
     CutoffNeighborFinder neighborListBuilder;
-    if(!neighborListBuilder.prepare(_cutoff, positions(), cell())){
-        spdlog::error("Failed to build neighbor lists; coordination numbers and RDF are left at zero");
-        return;
-    }
-    spdlog::info("Neighbor lists ready in {}", timer.elapsed());
+    neighborListBuilder.prepare(_cutoff, positions(), cell());
+    log.dump(neighborListBuilder);
     steps.next();
 
     const size_t particleCount = positions()->size();
     const double rdfBinSize = (_cutoff + EPSILON) / _rdfHistogram.size();
     int* coordOutput = _coordinationNumbers->dataInt();
 
-    spdlog::info("Computing coordination numbers and RDF for {} atoms...", particleCount);
     ProgressReporter progress("Computing coordination numbers", particleCount);
     _rdfHistogram = tbb::parallel_reduce(
         tbb::blocked_range<size_t>(0, particleCount),
@@ -50,11 +46,10 @@ void CoordinationAnalysisEngine::perform(){
             for(size_t i = 0; i < a.size(); ++i) a[i] += b[i];
             return a;
         });
-    spdlog::info("Computed coordination numbers and RDF for {} atoms in {}", particleCount, progress.elapsed());
+    log.dump(*_coordinationNumbers);
     steps.next();
 
     if(partialRdfs){
-        timer.restart();
         std::map<int, bool> typeSet;
         for(int t : *_types) typeSet[t] = true;
 
@@ -69,7 +64,6 @@ void CoordinationAnalysisEngine::perform(){
             }
         }
 
-        spdlog::info("Computing partial RDFs for {} atom types ({} pairs)...", typeSet.size(), pairHist.size());
         ProgressReporter pairProgress("Computing partial RDFs", particleCount);
         for(size_t i = 0; i < particleCount; ++i){
             int ti = (*_types)[i];
@@ -94,7 +88,7 @@ void CoordinationAnalysisEngine::perform(){
                 _partialRdf.push_back({pairName, (b + 0.5) * stepSize, hist[b]});
             }
         }
-        spdlog::info("Computed partial RDFs in {}", timer.elapsed());
+        log.dump(_partialRdf);
     }
 }
 
