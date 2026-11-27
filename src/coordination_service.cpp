@@ -77,7 +77,7 @@ json CoordinationService::compute(const LammpsParser::Frame& frame, const std::s
     json result;
     result["main_listing"] = {
         {"cutoff", _cutoff},
-        {"rdf_bins", static_cast<int>(rdfRows.size())},
+        {"rdf_bins", rdfRows.size()},
         {"total_atoms", frame.natoms},
         {"min_coordination", minCoordination},
         {"max_coordination", maxCoordination},
@@ -109,7 +109,7 @@ json CoordinationService::compute(const LammpsParser::Frame& frame, const std::s
             .bucketResolver = [&coordinationValues](std::size_t i) {
                 return "Coordination_" + std::to_string(coordinationValues[i]);
             },
-            .perAtomColumnWriter = [&coordinationValues, minC, maxC](ColumnarAtomWriter& w, std::size_t i) {
+            .perAtomColumnWriter = [&coordinationValues, minC, maxC](ColumnarRowWriter& w, std::size_t i) {
                 const int coord = coordinationValues[i];
                 const auto color = coordinationColor(coord, minC, maxC);
                 w.field("coordination", coord);
